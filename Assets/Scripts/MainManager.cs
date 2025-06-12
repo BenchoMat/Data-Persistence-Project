@@ -1,3 +1,4 @@
+using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -11,6 +12,7 @@ public class MainManager : MonoBehaviour
     public Rigidbody Ball;
 
     public Text ScoreText;
+    public Text HighScoreText;
     public GameObject GameOverText;
     
     private bool m_Started = false;
@@ -18,10 +20,16 @@ public class MainManager : MonoBehaviour
     
     private bool m_GameOver = false;
 
-    
     // Start is called before the first frame update
     void Start()
     {
+        GameManager.Instance.LoadHighScores();
+
+        if (GameManager.Instance.highScoreName != null && GameManager.Instance.highScoreName.Length > 0 && !string.IsNullOrEmpty(GameManager.Instance.highScoreName[0]))
+        {
+            HighScoreText.text = "Highest Score by: " + GameManager.Instance.highScoreName[0] + ": " + GameManager.Instance.highScore[0];
+        }
+
         const float step = 0.6f;
         int perLine = Mathf.FloorToInt(4.0f / step);
         
@@ -70,6 +78,43 @@ public class MainManager : MonoBehaviour
 
     public void GameOver()
     {
+        int newScore = m_Points;
+        string newName = GameManager.Instance.playerName;
+
+        if (GameManager.Instance.highScore == null || GameManager.Instance.highScore.Length < 5)
+        GameManager.Instance.highScore = new int[5];
+
+        if (GameManager.Instance.highScoreName == null || GameManager.Instance.highScoreName.Length < 5)
+        GameManager.Instance.highScoreName = new string[5];
+
+        // Insert new score if it's in the top 5
+        for (int i = 0; i < GameManager.Instance.highScore.Length; i++)
+        {
+            if (newScore > GameManager.Instance.highScore[i])
+            {
+                // Shift lower scores down
+                for (int j = GameManager.Instance.highScore.Length - 1; j > i; j--)
+                {
+                    GameManager.Instance.highScore[j] = GameManager.Instance.highScore[j - 1];
+                    GameManager.Instance.highScoreName[j] = GameManager.Instance.highScoreName[j - 1];
+                }
+
+                // Insert new score
+                GameManager.Instance.highScore[i] = newScore;
+                GameManager.Instance.highScoreName[i] = newName;
+                break; // done inserting
+            }
+        }
+
+        // Show top 1 score
+        if (GameManager.Instance.highScoreName[0] != null)
+        {
+            HighScoreText.text = "Highest Score by: " + GameManager.Instance.highScoreName[0] + ": " + GameManager.Instance.highScore[0];
+        }
+
+        // Save to file
+        GameManager.Instance.SaveHighScores(GameManager.Instance.highScore, GameManager.Instance.highScoreName);
+
         m_GameOver = true;
         GameOverText.SetActive(true);
     }
